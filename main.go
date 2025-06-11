@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"net/http"
+	"paymentbe/auth"
 	"paymentbe/routes"
 
 	"github.com/gin-gonic/gin"
@@ -17,14 +19,41 @@ func main() {
 	r := gin.Default()
 	api := r.Group("/api")
 	{
-		payment := api.Group("/payment")
+
+		authorize := api.Group("/auth")
+		{
+			authorize.POST("/token", routes.AuthenticationRoutes)
+		}
+
+		//validate JWT token from header before accessing payment routes
+		payment := api.Group("/payment", func(c *gin.Context) {
+			//bearer token authentication
+			token := c.GetHeader("Authorization")
+			if token == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+				c.Abort()
+				return
+			} else {
+				// Validate the token
+				_, err := auth.ValidateToken(token)
+				if err != nil {
+					c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+					c.Abort()
+					return
+				}
+			}
+
+		})
 		{
 			payment.POST("/session", routes.CreatePaymentSession)
-			payment.POST("/webhook/:type", routes.HandleWebhook)
 		}
+
+		api.POST("/payment/webhook/:type", routes.HandleWebhook)
+
 	}
 
-	// Optional redirect handlers
+	// Optional redirect handlers, this is for went the page complete payment sucess or cancel,
+	// probably here will also check with DB if payment is competed/cancelled, and redirect to frontend UI
 	r.GET("/payment/success", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "Payment Success"})
 	})

@@ -7,10 +7,11 @@ To simplify the process of integrating payments into your application, payment A
 - Create payment sessions for various payment providers
 - Handle webhooks for various payment providers
 - Handle payment confirmations for various payment providers
+- Authentication with JWT
 
 ## TODO
 
-[ ] - Webhook for each provider  
-[ ] - Handle confirmations and deposits for provider  
-[ ] - Show payment success/cancel page  
+- [ ]Webhook for each provider  
+- [ ]Handle confirmations and deposits for provider  
+- [ ]Show payment success/cancel page  
 

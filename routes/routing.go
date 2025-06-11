@@ -1,10 +1,15 @@
 package routes
 
 import (
+	"paymentbe/auth"
 	"paymentbe/handlers"
 
 	"github.com/gin-gonic/gin"
 )
+
+func AuthenticationRoutes(c *gin.Context) {
+	auth.CreateToken(c)
+}
 
 func CreatePaymentSession(c *gin.Context) {
 	provider := c.Query("provider")
@@ -24,6 +29,7 @@ func CreatePaymentSession(c *gin.Context) {
 	}
 }
 
+// TOD: enhance this.
 func HandleWebhook(c *gin.Context) {
 	provider := c.Param("type")
 	switch provider {
