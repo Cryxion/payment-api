@@ -6,29 +6,29 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"paymentbe/models"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 func CreateCoinbaseCharge(c *gin.Context) {
+	paymentModel, err := models.ToPaymentModel(c)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err})
+		return
+	}
+	coinbaseModel, err := paymentModel.ToCoinbase()
+	if err != nil {
+		c.JSON(400, gin.H{"error": err})
+		return
+	}
 
-	url := "https://api.commerce.coinbase.com/charges"
+	url := os.Getenv("COINBASE_API_URL")
 	method := "POST"
 
-	//json body for http
-	jsonBody := `{
-      "name": "The Human Fund",
-      "description": "Money For People",
-      "pricing_type": "fixed_price",
-      "local_price": {
-        "amount": "1.00",
-        "currency": "USD"
-      }
-    }`
-
 	client := &http.Client{}
-	req, err := http.NewRequest(method, url, strings.NewReader(jsonBody))
+	req, err := http.NewRequest(method, url, strings.NewReader(string(coinbaseModel)))
 
 	if err != nil {
 		fmt.Println(err)
@@ -66,6 +66,15 @@ func CreateCoinbaseCharge(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response structure"})
 		return
 	}
+
+	// save transaction id to db
+	transactionID, ok := data["id"].(string)
+	paymentModel.SetTransactionID(transactionID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "transaction_id not found"})
+		return
+	}
+
 	hostedURL, ok := data["hosted_url"].(string)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "hosted_url not found"})
@@ -76,5 +85,53 @@ func CreateCoinbaseCharge(c *gin.Context) {
 
 // TODO: Implement Coinbase webhook handler
 func CoinbaseWebhook(c *gin.Context) {
+
+	const MaxBodyBytes = int64(65536)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
+	payload, err := c.GetRawData()
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Reading body failed"})
+		return
+	}
+
+	sigHeader := c.GetHeader("X-CC-WEBHOOK-SIGNATURE")
+
+	// verify sigHeader with environment variable
+	endpointSecret := os.Getenv("COINBASE_WEBHOOK_SECRET")
+	if sigHeader != endpointSecret {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	//convert payload to json
+	var event map[string]interface{}
+	json.Unmarshal(payload, &event)
+
+	// the id is kept at event["event"]["data"]["id"]
+	if event == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data"})
+		return
+	}
+
+	eventData, ok := event["event"].(map[string]interface{})
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data"})
+		return
+	}
+
+	data, ok := eventData["data"].(map[string]interface{})
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data"})
+		return
+	}
+
+	chargeID, ok := data["id"].(string)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data"})
+		return
+	}
+
+	println("Coinbase Charge ID:", chargeID)
+	// TODO: find paymentmodel by transaction ID of chargeID, then mark as paid
 
 }

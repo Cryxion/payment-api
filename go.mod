@@ -6,7 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/joho/godotenv v1.5.1
-	github.com/stripe/stripe-go/v75 v75.11.0
+	github.com/stripe/stripe-go/v82 v82.2.1
 )
 
 require (

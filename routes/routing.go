@@ -13,8 +13,10 @@ func AuthenticationRoutes(c *gin.Context) {
 
 func CreatePaymentSession(c *gin.Context) {
 	provider := c.Query("provider")
+
 	switch provider {
 	case "stripe": // TODO: webhook
+
 		handlers.CreateStripeSession(c)
 	case "paypal": //TODO: add support
 		handlers.CreatePayPalOrder(c)
