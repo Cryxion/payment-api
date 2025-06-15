@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"paymentbe/models"
+	"paymentbe/models/errors"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -59,11 +60,11 @@ func CreateCoinbaseCharge(c *gin.Context) {
 
 	// if empty or any status other tahn 200, return error
 	if response == nil || res.StatusCode != http.StatusCreated {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create charge"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrFailedToCreateTransaction})
 	}
 	data, ok := response["data"].(map[string]interface{})
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response structure"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidTransactionData})
 		return
 	}
 
@@ -71,13 +72,13 @@ func CreateCoinbaseCharge(c *gin.Context) {
 	transactionID, ok := data["id"].(string)
 	paymentModel.SetTransactionID(transactionID)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "transaction_id not found"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrTransactionIDNotFound})
 		return
 	}
 
 	hostedURL, ok := data["hosted_url"].(string)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "hosted_url not found"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrPaymentURLNotFound})
 		return
 	}
 	paymentModel.SetPaymentURL(hostedURL)
@@ -91,7 +92,7 @@ func CoinbaseWebhook(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
 	payload, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Reading body failed"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.ErrReadingBodyFailed})
 		return
 	}
 
@@ -100,7 +101,7 @@ func CoinbaseWebhook(c *gin.Context) {
 	// verify sigHeader with environment variable
 	endpointSecret := os.Getenv("COINBASE_WEBHOOK_SECRET")
 	if sigHeader != endpointSecret {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.ErrWebhookUnauthorized})
 		return
 	}
 
@@ -110,25 +111,25 @@ func CoinbaseWebhook(c *gin.Context) {
 
 	// the id is kept at event["event"]["data"]["id"]
 	if event == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.ErrInvalidEventData})
 		return
 	}
 
 	eventData, ok := event["event"].(map[string]interface{})
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.ErrInvalidEventData})
 		return
 	}
 
 	data, ok := eventData["data"].(map[string]interface{})
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.ErrInvalidEventData})
 		return
 	}
 
 	chargeID, ok := data["id"].(string)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.ErrInvalidEventData})
 		return
 	}
 

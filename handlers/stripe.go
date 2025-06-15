@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"paymentbe/models"
+	"paymentbe/models/errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stripe/stripe-go/v82"
@@ -44,18 +45,24 @@ func CreateStripeSession(c *gin.Context) {
 
 	s, err := session.New(sessionParams)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidTransactionData})
 		return
 	}
 
 	// save s.ID if not empty
 	if s.ID == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Stripe session ID is empty"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrTransactionIDNotFound})
 		return
 	}
 	paymentModel.SetTransactionID(s.ID)
 
 	paymentModel.SetPaymentURL(s.URL)
+	// check if s.URL exists
+	if s.URL == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrPaymentURLNotFound})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"url": s.URL})
 }
 
@@ -66,7 +73,7 @@ func StripeWebhook(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
 	payload, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Reading body failed"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.ErrReadingBodyFailed})
 		return
 	}
 
@@ -76,7 +83,7 @@ func StripeWebhook(c *gin.Context) {
 
 	event, err := webhook.ConstructEvent(payload, sigHeader, endpointSecret)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Webhook signature verification failed"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.ErrWebhookUnauthorized})
 		return
 	}
 
@@ -93,7 +100,7 @@ func StripeWebhook(c *gin.Context) {
 	if event.Type == "checkout.session.completed" {
 		stripeSessionID, ok := event.Data.Object["id"].(string)
 		if !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.ErrInvalidEventData})
 			return
 		}
 		println(stripeSessionID)
