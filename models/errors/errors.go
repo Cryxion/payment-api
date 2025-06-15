@@ -8,5 +8,8 @@ const (
 	ErrPaymentURLNotFound        = "Payment URL not found"
 	ErrFailedToCreateTransaction = "Failed to create transaction"
 	ErrInvalidTransactionData    = "Invalid transaction data"
+	ErrInvalidCredential         = "Invalid credential"
+	ErrTokenNotFound             = "Token not found"
+	ErrTokenNotValid             = "Token not valid"
 	// Add more as needed
 )

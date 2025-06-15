@@ -6,6 +6,8 @@ import (
 	"paymentbe/auth"
 	"paymentbe/routes"
 
+	"paymentbe/models/errors"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -30,14 +32,14 @@ func main() {
 			//bearer token authentication
 			token := c.GetHeader("Authorization")
 			if token == "" {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+				c.JSON(http.StatusUnauthorized, gin.H{"error": errors.ErrTokenNotFound})
 				c.Abort()
 				return
 			} else {
 				// Validate the token
 				_, err := auth.ValidateToken(token)
 				if err != nil {
-					c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+					c.JSON(http.StatusUnauthorized, gin.H{"error": errors.ErrTokenNotValid})
 					c.Abort()
 					return
 				}

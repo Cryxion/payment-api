@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"os"
+	"paymentbe/models/errors"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +25,7 @@ func CreateToken(c *gin.Context) {
 
 	// auth mock_credentials
 	if mock_credentials["username"] != "testuser" || mock_credentials["password"] != "testpass" {
-		c.JSON(401, gin.H{"error": "Invalid credentials"})
+		c.JSON(401, gin.H{"error": errors.ErrInvalidCredential})
 		return
 	}
 
