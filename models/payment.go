@@ -9,9 +9,11 @@ import (
 
 type PaymentModel struct {
 	TransactionID string      `json:"transaction_id"` // Unique ID for the transaction
+	ClientID      string      `json:"client_id"`      // Unique ID for the client
 	Amount        float64     `json:"amount"`
 	Currency      string      `json:"currency"`
 	Provider      string      `json:"provider"`
+	PaymentURL    string      `json:"payment_url"`
 	SuccessURL    string      `json:"success_url"`
 	CancelURL     string      `json:"cancel_url"`
 	WebhookURL    string      `json:"webhook_url"`
@@ -20,8 +22,13 @@ type PaymentModel struct {
 	// Add more fields as needed
 }
 
+// once transaction id is created, this means the payment is initiated
 func (p *PaymentModel) SetTransactionID(id string) {
 	p.TransactionID = id
+}
+
+func (p *PaymentModel) SetPaymentURL(url string) {
+	p.PaymentURL = url
 }
 
 func ToPaymentModel(c *gin.Context) (PaymentModel, error) {
@@ -30,6 +37,11 @@ func ToPaymentModel(c *gin.Context) (PaymentModel, error) {
 		c.JSON(400, gin.H{"error": "Invalid amount"})
 		return PaymentModel{}, err
 	}
+
+	// might need to check if client previously initiated a payment without completing.
+	// if yes, should we cancel the previous transaction and create a new one?
+	// or resuse the same transaction id? and forward the previous created payment link?
+
 	return PaymentModel{
 		Amount:     amount,
 		Currency:   c.Query("currency"),

@@ -80,6 +80,7 @@ func CreateCoinbaseCharge(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "hosted_url not found"})
 		return
 	}
+	paymentModel.SetPaymentURL(hostedURL)
 	c.JSON(http.StatusOK, gin.H{"url": hostedURL})
 }
 

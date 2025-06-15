@@ -55,6 +55,7 @@ func CreateStripeSession(c *gin.Context) {
 	}
 	paymentModel.SetTransactionID(s.ID)
 
+	paymentModel.SetPaymentURL(s.URL)
 	c.JSON(http.StatusOK, gin.H{"url": s.URL})
 }
 
