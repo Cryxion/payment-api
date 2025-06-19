@@ -11,7 +11,7 @@ To simplify the process of integrating payments into your application, payment A
 
 ## TODO
 
-- [ ]Webhook for each provider  
-- [ ]Handle confirmations and deposits for provider  
-- [ ]Show payment success/cancel page  
+- [ ] Webhook for each provider  
+- [ ] Handle confirmations and deposits for provider  
+- [ ] Show payment success/cancel page  
 
